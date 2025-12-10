@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>simple_eiffel_parser - Eiffel Source Code Parser</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/png" href="images/logo.png">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/simple-eiffel/claude_eiffel_op_docs/main/artwork/LOGO.png" alt="simple_* logo" class="logo">
+        </div>
+        <h1>simple_eiffel_parser</h1>
+        <p class="tagline">Lightweight Eiffel Source Code Parser</p>
+        <div class="badges">
+            <span class="badge badge-version">v0.1.0</span>
+            <span class="badge badge-license">MIT</span>
+            <span class="badge badge-status">Complete</span>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#api">API</a></li>
+            <li><a href="#architecture">Architecture</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_eiffel_parser">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="overview">
+            <h2>Overview</h2>
+            <p>
+                <strong>simple_eiffel_parser</strong> is a recursive descent parser that extracts structural
+                information from Eiffel source code. It's designed for IDE tooling, code analysis, and
+                documentation generation - not compilation.
+            </p>
+            <p>
+                Built as a dependency for <a href="https://github.com/simple-eiffel/simple_lsp">simple_lsp</a>,
+                this parser provides the symbol extraction needed for hover documentation, go-to-definition,
+                code completion, and document outline features.
+            </p>
+        </section>
+
+        <section id="features">
+            <h2>What It Extracts</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>Class Declarations</h4>
+                    <p>Deferred, expanded, frozen classes with header comments.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>Feature Signatures</h4>
+                    <p>Arguments, return types, and export status for all features.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>Contracts</h4>
+                    <p>Preconditions (require) and postconditions (ensure) as text.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>Inheritance</h4>
+                    <p>Parent classes with rename, redefine, undefine, and select clauses.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>Local Variables</h4>
+                    <p>Local variable declarations with types and line numbers.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>Error Recovery</h4>
+                    <p>Continues parsing after errors, returns partial results.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="api">
+            <h2>API Design</h2>
+            <p>simple_eiffel_parser follows Design by Contract principles:</p>
+
+            <div class="api-section">
+                <h3>parse_file</h3>
+                <div class="signature">parse_file (a_path: STRING): EIFFEL_AST</div>
+                <p>Parse an Eiffel source file and return the abstract syntax tree.</p>
+                <div class="contracts">
+                    <h4>Contracts</h4>
+                    <div class="require">require: a_path /= Void and then not a_path.is_empty</div>
+                    <div class="ensure">ensure: Result /= Void</div>
+                </div>
+            </div>
+
+            <div class="api-section">
+                <h3>parse_string</h3>
+                <div class="signature">parse_string (a_source: STRING): EIFFEL_AST</div>
+                <p>Parse Eiffel source code from a string.</p>
+                <div class="contracts">
+                    <h4>Contracts</h4>
+                    <div class="require">require: a_source /= Void</div>
+                    <div class="ensure">ensure: Result /= Void</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="architecture">
+            <h2>Architecture</h2>
+            <p>The parser consists of 11 classes totaling 2,327 lines of Eiffel code:</p>
+
+            <table>
+                <tr><th>Class</th><th>Lines</th><th>Purpose</th></tr>
+                <tr><td>SIMPLE_EIFFEL_PARSER</td><td>107</td><td>Facade class</td></tr>
+                <tr><td>EIFFEL_PARSER</td><td>871</td><td>Recursive descent parser</td></tr>
+                <tr><td>EIFFEL_LEXER</td><td>436</td><td>Tokenizer</td></tr>
+                <tr><td>EIFFEL_TOKEN</td><td>160</td><td>Token definitions</td></tr>
+                <tr><td>EIFFEL_CLASS_NODE</td><td>155</td><td>Class representation</td></tr>
+                <tr><td>EIFFEL_FEATURE_NODE</td><td>265</td><td>Feature representation</td></tr>
+                <tr><td>EIFFEL_PARENT_NODE</td><td>88</td><td>Inheritance representation</td></tr>
+                <tr><td>EIFFEL_AST</td><td>64</td><td>AST container</td></tr>
+                <tr><td>EIFFEL_ARGUMENT_NODE</td><td>47</td><td>Argument representation</td></tr>
+                <tr><td>EIFFEL_LOCAL_NODE</td><td>47</td><td>Local variable representation</td></tr>
+                <tr><td>EIFFEL_PARSE_ERROR</td><td>87</td><td>Error representation</td></tr>
+            </table>
+        </section>
+
+        <section id="building">
+            <h2>Building from Source</h2>
+            <h3>Prerequisites</h3>
+            <ul>
+                <li>EiffelStudio 25.02+</li>
+                <li>simple_file library</li>
+                <li>simple_regex library</li>
+            </ul>
+
+            <h3>Build Commands</h3>
+<pre><code><span class="comment"># Set environment variables</span>
+<span class="keyword">export</span> SIMPLE_EIFFEL_PARSER=/path/to/simple_eiffel_parser
+<span class="keyword">export</span> SIMPLE_FILE=/path/to/simple_file
+<span class="keyword">export</span> SIMPLE_REGEX=/path/to/simple_regex
+
+<span class="comment"># Compile and run tests</span>
+ec.exe -batch -config simple_eiffel_parser.ecf -target simple_eiffel_parser_tests -c_compile
+./EIFGENs/simple_eiffel_parser_tests/W_code/simple_eiffel_parser.exe</code></pre>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 simple_* ecosystem. MIT License.</p>
+        <p>
+            <a href="https://github.com/simple-eiffel/simple_eiffel_parser">GitHub</a> |
+            <a href="https://simple-eiffel.github.io">Documentation</a> |
+            <a href="https://www.eiffel.org">Eiffel Language</a>
+        </p>
+    </footer>
+</body>
+</html>
