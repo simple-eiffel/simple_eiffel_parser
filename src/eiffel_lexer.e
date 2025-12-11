@@ -136,7 +136,7 @@ feature {NONE} -- Scanning
 			advance -- skip opening quote
 			from
 			until
-				position > source.count or else (source[position] = '"' and then (position = 1 or else source[position - 1] /= '%%'))
+				position > source.count or else (source[position] = '"' and then not is_escaped_quote)
 			loop
 				if source[position] = '%N' then
 					line := line + 1
@@ -149,6 +149,29 @@ feature {NONE} -- Scanning
 			end
 			text := source.substring (start_pos, position - 1)
 			create Result.make ({EIFFEL_TOKEN}.Token_string, text, line, start_col)
+		end
+
+	is_escaped_quote: BOOLEAN
+			-- Is current quote an escaped quote (%")?
+			-- An escaped quote has an ODD number of % characters before it.
+			-- %"  = escaped (1 percent)
+			-- %%" = not escaped (2 percents = escaped percent, then real quote)
+			-- %%%" = escaped (3 percents = escaped percent + escaped quote)
+		local
+			l_count: INTEGER
+			l_pos: INTEGER
+		do
+			-- Count consecutive % characters before the quote
+			from
+				l_pos := position - 1
+			until
+				l_pos < 1 or else source[l_pos] /= '%%'
+			loop
+				l_count := l_count + 1
+				l_pos := l_pos - 1
+			end
+			-- If odd number of %, the quote is escaped
+			Result := l_count \\ 2 = 1
 		end
 
 	scan_character: EIFFEL_TOKEN
