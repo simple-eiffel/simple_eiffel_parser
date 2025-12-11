@@ -1,0 +1,60 @@
+
+simple_eiffel_parser: system execution failed.
+Following is the set of recorded exceptions:
+
+******************************** Thread exception *****************************
+In thread           Root thread            0x0 (thread id)
+*******************************************************************************
+-------------------------------------------------------------------------------
+Class / Object      Routine                Nature of exception           Effect
+-------------------------------------------------------------------------------
+EIFFEL_PARSER       current_token @1       not_at_end:                  
+<0000015E9A130748>                         Precondition violated.        Fail
+-------------------------------------------------------------------------------
+EIFFEL_PARSER       parse_class @36                                     
+<0000015E9A130748>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+EIFFEL_PARSER       parse_string @8                                     
+<0000015E9A130748>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+SIMPLE_EIFFEL_PARSER
+                    parse_string @2        
+<0000015E9A130728>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+TEST_STRING_LEXER   make @29                                            
+<0000015E9A1275A8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+TEST_STRING_LEXER   root's creation                                     
+<0000015E9A1275A8>                         Routine failure.              Exit
+-------------------------------------------------------------------------------
+
+simple_eiffel_parser: system execution failed.
+Following is the set of recorded exceptions:
+
+******************************** Thread exception *****************************
+In thread           Root thread            0x0 (thread id)
+*******************************************************************************
+-------------------------------------------------------------------------------
+Class / Object      Routine                Nature of exception           Effect
+-------------------------------------------------------------------------------
+CONSOLE             console_ps             FILE: unable to write STRING object.:
+<000001C35D73A708>                         Runtime I/O error.            Fail
+-------------------------------------------------------------------------------
+CONSOLE             console_ps                                          
+<000001C35D73A708>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+CONSOLE             put_string @6                                       
+<000001C35D73A708>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+STD_FILES           put_string @2                                       
+<000001C35D73A6E8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+TEST_STRING_LEXER   print @6                                            
+<000001C35D73A5A8>  (From ANY)             Routine failure.              Fail
+-------------------------------------------------------------------------------
+TEST_STRING_LEXER   make @68                                            
+<000001C35D73A5A8>                         Routine failure.              Fail
+-------------------------------------------------------------------------------
+TEST_STRING_LEXER   root's creation                                     
+<000001C35D73A5A8>                         Routine failure.              Exit
+-------------------------------------------------------------------------------

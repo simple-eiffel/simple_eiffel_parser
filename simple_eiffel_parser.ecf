@@ -25,4 +25,8 @@
 	<target name="eifgens_test" extends="simple_eiffel_parser">
 		<root class="EIFGENS_TEST_APP" feature="make"/>
 	</target>
+	<target name="lexer_test" extends="simple_eiffel_parser">
+		<root class="TEST_STRING_LEXER" feature="make"/>
+		<cluster name="test_root" location="."/>
+	</target>
 </system>

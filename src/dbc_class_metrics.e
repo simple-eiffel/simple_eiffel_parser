@@ -39,17 +39,46 @@ feature -- Access
 	feature_count: INTEGER
 			-- Number of features
 
+	attribute_count: INTEGER
+			-- Number of attributes
+
+	lines_of_code: INTEGER
+			-- Lines of actual code (excluding notes, comments, blanks)
+
 	require_count: INTEGER
 			-- Features with preconditions
 
 	ensure_count: INTEGER
 			-- Features with postconditions
 
+	precondition_lines: INTEGER
+			-- Individual precondition assertion lines
+
+	postcondition_lines: INTEGER
+			-- Individual postcondition assertion lines
+
+	invariant_lines: INTEGER
+			-- Individual class invariant assertion lines
+
 	has_invariant: BOOLEAN
 			-- Does class have invariant?
 
 	score: INTEGER
 			-- DbC score (0-100)
+
+	total_contract_lines: INTEGER
+			-- Total contract assertion lines
+		do
+			Result := precondition_lines + postcondition_lines + invariant_lines
+		end
+
+	contracts_per_feature: REAL_64
+			-- Average contracts per feature
+		do
+			if feature_count > 0 then
+				Result := total_contract_lines / feature_count
+			end
+		end
 
 feature -- Modification
 
@@ -71,6 +100,46 @@ feature -- Modification
 	set_has_invariant (a_value: BOOLEAN)
 		do
 			has_invariant := a_value
+		end
+
+	set_attribute_count (a_value: INTEGER)
+		do
+			attribute_count := a_value
+		end
+
+	set_lines_of_code (a_value: INTEGER)
+		do
+			lines_of_code := a_value
+		end
+
+	set_precondition_lines (a_value: INTEGER)
+		do
+			precondition_lines := a_value
+		end
+
+	set_postcondition_lines (a_value: INTEGER)
+		do
+			postcondition_lines := a_value
+		end
+
+	set_invariant_lines (a_value: INTEGER)
+		do
+			invariant_lines := a_value
+		end
+
+	add_precondition_lines (a_value: INTEGER)
+		do
+			precondition_lines := precondition_lines + a_value
+		end
+
+	add_postcondition_lines (a_value: INTEGER)
+		do
+			postcondition_lines := postcondition_lines + a_value
+		end
+
+	add_invariant_lines (a_value: INTEGER)
+		do
+			invariant_lines := invariant_lines + a_value
 		end
 
 	calculate_score

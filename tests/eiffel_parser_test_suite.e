@@ -326,6 +326,60 @@ end
 			assert ("at least one error", l_ast.parse_errors.count >= 1)
 		end
 
+	test_keyword_in_string
+			-- Test that keywords inside strings are NOT treated as keywords
+		local
+			l_lexer: EIFFEL_LEXER
+			l_tokens: ARRAYED_LIST [EIFFEL_TOKEN]
+		do
+			-- String containing "class" should be ONE Token_string, not keyword
+			create l_lexer.make ("%"this has class in it%"")
+			l_tokens := l_lexer.all_tokens
+
+			print ("Token count: " + l_tokens.count.out + "%N")
+			across l_tokens as t loop
+				print ("  Token: type=" + t.token_type.out + " text=" + t.text + "%N")
+			end
+
+			assert ("one token", l_tokens.count = 1)
+			assert ("is string type", l_tokens.first.token_type = {EIFFEL_TOKEN}.Token_string)
+		end
+
+	test_parser_with_keyword_in_string
+			-- Test parser handles keyword inside string correctly
+		local
+			l_parser: SIMPLE_EIFFEL_PARSER
+			l_ast: EIFFEL_AST
+			l_source: STRING
+		do
+			l_source := "[
+class
+	TEST_CLASS
+
+feature
+
+	log_something
+		do
+			print ("Found class: " + name)
+		end
+
+	name: STRING
+
+end
+			]"
+
+			create l_parser.make
+			l_ast := l_parser.parse_string (l_source)
+
+			print ("Parser errors: " + l_ast.parse_errors.count.out + "%N")
+			across l_ast.parse_errors as e loop
+				print ("  Error: " + e.message + " at line " + e.line.out + ", col " + e.column.out + "%N")
+			end
+
+			assert ("no errors", not l_ast.has_errors)
+			assert ("one class", l_ast.classes.count = 1)
+		end
+
 	test_eifgens_metadata_parser
 			-- Test EIFGENs metadata parsing
 		local
