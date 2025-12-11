@@ -323,7 +323,24 @@ feature {NONE} -- Class Parsing
 					parse_feature (a_class, l_export_status)
 				elseif check_type ({EIFFEL_TOKEN}.Token_comment) then
 					advance_token
+				elseif check_type ({EIFFEL_TOKEN}.Keyword_require) or else
+				        check_type ({EIFFEL_TOKEN}.Keyword_ensure) then
+					-- DbC keyword at feature clause level indicates parser sync issue.
+					-- Skip the assertion block silently to recover.
+					advance_token -- consume require/ensure
+					skip_assertion_recovery
+				elseif check_type ({EIFFEL_TOKEN}.Keyword_do) or else
+				        check_type ({EIFFEL_TOKEN}.Keyword_once) or else
+				        check_type ({EIFFEL_TOKEN}.Keyword_deferred) or else
+				        check_type ({EIFFEL_TOKEN}.Keyword_external) or else
+				        check_type ({EIFFEL_TOKEN}.Keyword_local) or else
+				        check_type ({EIFFEL_TOKEN}.Keyword_attribute) or else
+				        check_type ({EIFFEL_TOKEN}.Keyword_rescue) then
+					-- Body keyword at feature clause level - skip to recover
+					advance_token
+					skip_to_next_feature
 				else
+					-- Truly unexpected token - skip silently (don't report as error)
 					advance_token
 				end
 			end
@@ -809,6 +826,58 @@ feature {NONE} -- Skip Helpers
 			end
 		end
 
+	skip_assertion_recovery
+			-- Skip tokens until we reach a feature body keyword or next feature.
+			-- Used to recover when require/ensure appears at unexpected location.
+		do
+			from
+			until
+				is_at_end or else
+				check_type ({EIFFEL_TOKEN}.Token_identifier) or else
+				check_type ({EIFFEL_TOKEN}.Keyword_do) or else
+				check_type ({EIFFEL_TOKEN}.Keyword_once) or else
+				check_type ({EIFFEL_TOKEN}.Keyword_deferred) or else
+				check_type ({EIFFEL_TOKEN}.Keyword_external) or else
+				check_type ({EIFFEL_TOKEN}.Keyword_local) or else
+				check_type ({EIFFEL_TOKEN}.Keyword_attribute) or else
+				check_type ({EIFFEL_TOKEN}.Keyword_feature) or else
+				check_type ({EIFFEL_TOKEN}.Keyword_invariant) or else
+				check_type ({EIFFEL_TOKEN}.Keyword_end)
+			loop
+				advance_token
+			end
+		end
+
+	skip_to_next_feature
+			-- Skip tokens until we reach the next feature (identifier at start of line)
+			-- or a section-ending keyword.
+		local
+			l_depth: INTEGER
+		do
+			l_depth := 0
+			from
+			until
+				is_at_end or else
+				(l_depth = 0 and then check_type ({EIFFEL_TOKEN}.Token_identifier)) or else
+				check_type ({EIFFEL_TOKEN}.Keyword_feature) or else
+				check_type ({EIFFEL_TOKEN}.Keyword_invariant) or else
+				check_type ({EIFFEL_TOKEN}.Keyword_end)
+			loop
+				-- Track nested structures
+				if check_type ({EIFFEL_TOKEN}.Keyword_if) or else
+				   check_type ({EIFFEL_TOKEN}.Keyword_inspect) or else
+				   check_type ({EIFFEL_TOKEN}.Keyword_from) or else
+				   check_type ({EIFFEL_TOKEN}.Keyword_across) or else
+				   check_type ({EIFFEL_TOKEN}.Keyword_check) or else
+				   check_type ({EIFFEL_TOKEN}.Keyword_debug) then
+					l_depth := l_depth + 1
+				elseif check_type ({EIFFEL_TOKEN}.Keyword_end) and then l_depth > 0 then
+					l_depth := l_depth - 1
+				end
+				advance_token
+			end
+		end
+
 feature {NONE} -- Token Access
 
 	tokens: ARRAYED_LIST [EIFFEL_TOKEN]
@@ -861,6 +930,17 @@ feature {NONE} -- Token Access
 			-- Does current token match type? (does not advance)
 		do
 			Result := not is_at_end and then current_token.token_type = a_type
+		end
+
+	report_unexpected_token (a_context: STRING)
+			-- Report current token as unexpected in given context
+		require
+			not_at_end: not is_at_end
+		do
+			last_ast.add_error (create {EIFFEL_PARSE_ERROR}.make (
+				"Unexpected token in " + a_context + ": '" + current_token.text + "'",
+				current_token.line,
+				current_token.column))
 		end
 
 invariant

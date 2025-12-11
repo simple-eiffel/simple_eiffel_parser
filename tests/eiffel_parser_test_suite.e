@@ -290,4 +290,74 @@ class BAR end
 			assert ("two classes", l_names.count = 2)
 		end
 
+	test_unexpected_token_error
+			-- Test that unexpected tokens in feature clauses generate errors
+		local
+			l_parser: SIMPLE_EIFFEL_PARSER
+			l_ast: EIFFEL_AST
+			l_source: STRING
+		do
+			l_source := "[
+class
+	CALCULATOR
+
+feature
+
+	add (a, b: INTEGER): INTEGER
+		do
+			Result := a + b
+		end
+
+	asdfghjkl
+
+end
+			]"
+
+			create l_parser.make
+			l_ast := l_parser.parse_string (l_source)
+
+			print ("Has errors: " + l_ast.has_errors.out + "%N")
+			print ("Error count: " + l_ast.parse_errors.count.out + "%N")
+			across l_ast.parse_errors as e loop
+				print ("  Error: " + e.message + " at line " + e.line.out + "%N")
+			end
+
+			assert ("has errors", l_ast.has_errors)
+			assert ("at least one error", l_ast.parse_errors.count >= 1)
+		end
+
+	test_eifgens_metadata_parser
+			-- Test EIFGENs metadata parsing
+		local
+			l_meta: EIFGENS_METADATA_PARSER
+		do
+			-- Test with simple_json's EIFGENs
+			create l_meta.make_with_path ("/d/prod/simple_json/EIFGENs/simple_json_tests/W_code")
+			l_meta.load
+
+			print ("Loaded: " + l_meta.is_loaded.out + "%N")
+			print ("Classes: " + l_meta.class_count.out + "%N")
+			print ("Features: " + l_meta.total_features.out + "%N")
+
+			-- Test class lookup
+			if l_meta.has_class ("SIMPLE_JSON") then
+				print ("Found SIMPLE_JSON at index: " + l_meta.class_index ("SIMPLE_JSON").out + "%N")
+			else
+				print ("SIMPLE_JSON not found!%N")
+			end
+
+			-- Test ancestor chain
+			if l_meta.has_class ("SIMPLE_JSON_VALUE") then
+				print ("Ancestors of SIMPLE_JSON_VALUE: ")
+				across l_meta.ancestor_chain ("SIMPLE_JSON_VALUE") as a loop
+					print (a + " ")
+				end
+				print ("%N")
+			end
+
+			assert ("metadata loaded", l_meta.is_loaded)
+			assert ("has classes", l_meta.class_count > 100) -- simple_json has 1000+ classes
+			assert ("has features", l_meta.total_features > 500)
+		end
+
 end
