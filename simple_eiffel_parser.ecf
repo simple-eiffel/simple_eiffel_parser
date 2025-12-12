@@ -20,7 +20,7 @@
 	<target name="simple_eiffel_parser_tests" extends="simple_eiffel_parser">
 		<root class="EIFFEL_PARSER_TEST_SUITE" feature="default_create"/>
 		<library name="testing" location="$ISE_LIBRARY\library\testing\testing.ecf"/>
-		<cluster name="tests" location=".\tests\" recursive="true"/>
+		<cluster name="test_classes" location=".\testing\" recursive="true"/>
 	</target>
 	<target name="eifgens_test" extends="simple_eiffel_parser">
 		<root class="EIFGENS_TEST_APP" feature="make"/>

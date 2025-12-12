@@ -267,7 +267,7 @@ feature {NONE} -- Parsing
 		do
 			create l_file.make (a_path)
 			if l_file.exists then
-				l_content := l_file.read_text.to_string_8
+				l_content := l_file.load.to_string_8
 				l_lines := l_content.split ('%N')
 				l_in_array := False
 				l_index := 0
@@ -313,7 +313,7 @@ feature {NONE} -- Parsing
 		do
 			create l_file.make (a_path)
 			if l_file.exists then
-				l_content := l_file.read_text.to_string_8
+				l_content := l_file.load.to_string_8
 				l_lines := l_content.split ('%N')
 				l_class_name := ""
 				l_pending_parents := Void
@@ -362,7 +362,7 @@ feature {NONE} -- Parsing
 		do
 			create l_file.make (a_path)
 			if l_file.exists then
-				l_content := l_file.read_text.to_string_8
+				l_content := l_file.load.to_string_8
 				l_lines := l_content.split ('%N')
 				l_current_class := -1
 				l_in_names := False
