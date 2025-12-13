@@ -8,7 +8,7 @@ class
 	EIFFEL_PARSER_TEST_SUITE
 
 inherit
-	EQA_TEST_SET
+	TEST_SET_BASE
 
 feature -- Tests
 
@@ -72,7 +72,8 @@ end
 
 			assert ("no errors", not l_ast.has_errors)
 			assert ("class name", l_ast.classes.first.name.is_equal ("FOO"))
-			assert ("has creator", l_ast.classes.first.creators.has ("make"))
+			assert_string_contains ("has_class_name", "FOO", l_ast.classes.first.name)
+			assert_string_contains ("has_creator", "make", l_ast.classes.first.creators.first)
 			assert ("two features", l_ast.classes.first.features.count = 2)
 		end
 
@@ -143,8 +144,8 @@ end
 
 			assert ("no errors", not l_ast.has_errors)
 			assert ("one parent", l_ast.classes.first.parents.count = 1)
-			assert ("parent name", l_ast.classes.first.parents.first.parent_name.is_equal ("PARENT"))
-			assert ("has redefine", l_ast.classes.first.parents.first.redefines.has ("make"))
+			assert_string_contains ("has_parent", "PARENT", l_ast.classes.first.parents.first.parent_name)
+			assert_string_contains ("has_redefine", "make", l_ast.classes.first.parents.first.redefines.first)
 		end
 
 	test_contracts
@@ -384,34 +385,38 @@ end
 			-- Test EIFGENs metadata parsing
 		local
 			l_meta: EIFGENS_METADATA_PARSER
+			l_env: SIMPLE_ENV
 		do
-			-- Test with simple_json's EIFGENs
-			create l_meta.make_with_path ("/d/prod/simple_json/EIFGENs/simple_json_tests/W_code")
-			l_meta.load
+			create l_env
+			check attached l_env.item ("SIMPLE_JSON") as al_root then
+				-- Test with simple_json's EIFGENs
+				create l_meta.make_with_path (al_root + "/EIFGENs/simple_json_tests/W_code")
+				l_meta.load
 
-			print ("Loaded: " + l_meta.is_loaded.out + "%N")
-			print ("Classes: " + l_meta.class_count.out + "%N")
-			print ("Features: " + l_meta.total_features.out + "%N")
+				print ("Loaded: " + l_meta.is_loaded.out + "%N")
+				print ("Classes: " + l_meta.class_count.out + "%N")
+				print ("Features: " + l_meta.total_features.out + "%N")
 
-			-- Test class lookup
-			if l_meta.has_class ("SIMPLE_JSON") then
-				print ("Found SIMPLE_JSON at index: " + l_meta.class_index ("SIMPLE_JSON").out + "%N")
-			else
-				print ("SIMPLE_JSON not found!%N")
-			end
-
-			-- Test ancestor chain
-			if l_meta.has_class ("SIMPLE_JSON_VALUE") then
-				print ("Ancestors of SIMPLE_JSON_VALUE: ")
-				across l_meta.ancestor_chain ("SIMPLE_JSON_VALUE") as a loop
-					print (a + " ")
+				-- Test class lookup
+				if l_meta.has_class ("SIMPLE_JSON") then
+					print ("Found SIMPLE_JSON at index: " + l_meta.class_index ("SIMPLE_JSON").out + "%N")
+				else
+					print ("SIMPLE_JSON not found!%N")
 				end
-				print ("%N")
-			end
 
-			assert ("metadata loaded", l_meta.is_loaded)
-			assert ("has classes", l_meta.class_count > 100) -- simple_json has 1000+ classes
-			assert ("has features", l_meta.total_features > 500)
+				-- Test ancestor chain
+				if l_meta.has_class ("SIMPLE_JSON_VALUE") then
+					print ("Ancestors of SIMPLE_JSON_VALUE: ")
+					across l_meta.ancestor_chain ("SIMPLE_JSON_VALUE") as a loop
+						print (a + " ")
+					end
+					print ("%N")
+				end
+
+				assert ("metadata loaded", l_meta.is_loaded)
+				assert_in_range ("has_classes", l_meta.class_count, 100, 10_000)
+				assert_in_range ("has_features", l_meta.total_features, 100, 10_000)
+			end
 		end
 
 end

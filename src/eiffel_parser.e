@@ -441,8 +441,20 @@ feature {NONE} -- Class Parsing
 					l_feature.set_kind ({EIFFEL_FEATURE_NODE}.Kind_external)
 					skip_external
 				else
-					-- Attribute (no body keywords)
-					l_feature.set_kind ({EIFFEL_FEATURE_NODE}.Kind_attribute)
+					-- No body keywords - check if this is a valid attribute or incomplete feature
+					if l_feature.return_type /= Void then
+						-- Has type declaration (e.g., "name: TYPE") - valid attribute
+						l_feature.set_kind ({EIFFEL_FEATURE_NODE}.Kind_attribute)
+					else
+						-- No type AND no body = incomplete feature declaration
+						-- A bare identifier like "asdfghjkl" without ": TYPE" or "do...end" is invalid
+						last_ast.add_error (create {EIFFEL_PARSE_ERROR}.make (
+							"Incomplete feature declaration '" + l_name +
+							"': expected ':' followed by type, or body keyword (do/once/deferred/external)",
+							l_feature.line, l_feature.column))
+						-- Add as attribute for error recovery, but error is reported
+						l_feature.set_kind ({EIFFEL_FEATURE_NODE}.Kind_attribute)
+					end
 				end
 
 				-- Parse rescue
