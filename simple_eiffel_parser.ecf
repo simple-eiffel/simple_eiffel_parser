@@ -18,7 +18,7 @@
 		</library>
 		<library name="simple_file" location="$SIMPLE_FILE\simple_file.ecf"/>
 		<library name="simple_regex" location="$SIMPLE_REGEX\simple_regex.ecf"/>
-		<library name="time" location="$ISE_LIBRARY\library\time\time.ecf"/>
+		<library name="simple_datetime" location="$SIMPLE_DATETIME/simple_datetime.ecf"/>
 		<cluster name="src" location=".\src\" recursive="true"/>
 	</target>
 	<target name="simple_eiffel_parser_tests" extends="simple_eiffel_parser">
