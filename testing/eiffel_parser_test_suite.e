@@ -388,9 +388,9 @@ end
 			l_env: SIMPLE_ENV
 		do
 			create l_env
-			check attached l_env.item ("SIMPLE_JSON") as al_root then
+			check attached l_env.item ("SIMPLE_EIFFEL") as al_root then
 				-- Test with simple_json's EIFGENs
-				create l_meta.make_with_path (al_root + "/EIFGENs/simple_json_tests/W_code")
+				create l_meta.make_with_path (al_root + "/simple_json/EIFGENs/simple_json_tests/W_code")
 				l_meta.load
 
 				print ("Loaded: " + l_meta.is_loaded.out + "%N")
