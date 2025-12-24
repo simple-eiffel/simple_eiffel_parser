@@ -19,6 +19,15 @@
 		<library name="simple_file" location="$SIMPLE_EIFFEL/simple_file/simple_file.ecf"/>
 		<library name="simple_regex" location="$SIMPLE_EIFFEL/simple_regex/simple_regex.ecf"/>
 		<library name="simple_datetime" location="$SIMPLE_EIFFEL/simple_datetime/simple_datetime.ecf"/>
+		<library name="gobo_kernel" location="$ISE_LIBRARY/contrib/library/gobo/library/kernel/library.ecf"/>
+		<library name="gobo_structure" location="$ISE_LIBRARY/contrib/library/gobo/library/structure/library.ecf"/>
+		<library name="gobo_utility" location="$ISE_LIBRARY/contrib/library/gobo/library/utility/library.ecf"/>
+		<library name="gobo_time" location="$ISE_LIBRARY/contrib/library/gobo/library/time/library.ecf"/>
+		<library name="gobo_string" location="$ISE_LIBRARY/contrib/library/gobo/library/string/library.ecf"/>
+		<library name="gobo_lexical" location="$ISE_LIBRARY/contrib/library/gobo/library/lexical/library.ecf"/>
+		<library name="gobo_parse" location="$ISE_LIBRARY/contrib/library/gobo/library/parse/library.ecf"/>
+		<library name="gobo_regexp" location="$ISE_LIBRARY/contrib/library/gobo/library/regexp/library.ecf"/>
+		<library name="gobo_tools" location="$ISE_LIBRARY/contrib/library/gobo/library/tools/library.ecf"/>
 		<cluster name="src" location=".\src\" recursive="true"/>
 	</target>
 	<target name="simple_eiffel_parser_tests" extends="simple_eiffel_parser">

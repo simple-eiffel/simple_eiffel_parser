@@ -1,5 +1,10 @@
 note
-	description: "Facade class for Eiffel source code parsing - extracts symbols for LSP"
+	description: "[
+		Facade class for Eiffel source code parsing - extracts symbols for LSP.
+
+		Internally wraps Gobo's ET_EIFFEL_PARSER to provide a simple API.
+		Converts Gobo's ET_CLASS to our EIFFEL_CLASS_NODE for easy consumption.
+	]"
 	author: "Larry Rix"
 	date: "$Date$"
 	revision: "$Revision$"
@@ -13,9 +18,10 @@ create
 feature {NONE} -- Initialization
 
 	make
-			-- Initialize parser
+			-- Initialize parser with Gobo backend
 		do
-			create parser.make
+			create gobo_bridge.make
+			create internal_last_ast.make
 		end
 
 feature -- Access
@@ -23,7 +29,7 @@ feature -- Access
 	last_ast: EIFFEL_AST
 			-- Result of last parse operation
 		do
-			Result := parser.last_ast
+			Result := internal_last_ast
 		end
 
 feature -- Parsing
@@ -34,7 +40,21 @@ feature -- Parsing
 		require
 			source_not_void: a_source /= Void
 		do
-			Result := parser.parse_string (a_source)
+			create internal_last_ast.make
+
+			if gobo_bridge.parse_string (a_source, "inline_source.e") then
+				if attached gobo_bridge.last_class as lc then
+					internal_last_ast.add_class (gobo_bridge.to_simple_class (lc))
+				end
+			else
+				if attached gobo_bridge.last_error as err then
+					internal_last_ast.add_error (create {EIFFEL_PARSE_ERROR}.make (err, 1, 1))
+				else
+					internal_last_ast.add_error (create {EIFFEL_PARSE_ERROR}.make ("Parse error", 1, 1))
+				end
+			end
+
+			Result := internal_last_ast
 		ensure
 			result_not_void: Result /= Void
 		end
@@ -44,7 +64,21 @@ feature -- Parsing
 		require
 			path_not_empty: a_path /= Void and then not a_path.is_empty
 		do
-			Result := parser.parse_file (a_path)
+			create internal_last_ast.make
+
+			if gobo_bridge.parse_file (a_path) then
+				if attached gobo_bridge.last_class as lc then
+					internal_last_ast.add_class (gobo_bridge.to_simple_class (lc))
+				end
+			else
+				if attached gobo_bridge.last_error as err then
+					internal_last_ast.add_error (create {EIFFEL_PARSE_ERROR}.make (err, 1, 1))
+				else
+					internal_last_ast.add_error (create {EIFFEL_PARSE_ERROR}.make ("Cannot parse file: " + a_path, 1, 1))
+				end
+			end
+
+			Result := internal_last_ast
 		ensure
 			result_not_void: Result /= Void
 		end
@@ -98,10 +132,14 @@ feature -- Convenience
 
 feature {NONE} -- Implementation
 
-	parser: EIFFEL_PARSER
-			-- Internal parser
+	gobo_bridge: GOBO_PARSER_BRIDGE
+			-- Gobo parser bridge
+
+	internal_last_ast: EIFFEL_AST
+			-- Internal AST storage
 
 invariant
-	parser_exists: parser /= Void
+	gobo_bridge_exists: gobo_bridge /= Void
+	internal_ast_exists: internal_last_ast /= Void
 
 end

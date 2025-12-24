@@ -369,8 +369,11 @@ feature {NONE} -- Class Parsing
 				l_feature.set_export_status (a_export)
 				advance_token
 
-				-- Parse aliases (skip)
-				if match ({EIFFEL_TOKEN}.Keyword_alias) then
+				-- Parse aliases (skip) - Eiffel allows multiple aliases per feature
+				from
+				until
+					not match ({EIFFEL_TOKEN}.Keyword_alias)
+				loop
 					skip_string
 				end
 
