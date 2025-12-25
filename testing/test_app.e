@@ -15,6 +15,10 @@ feature {NONE} -- Initialization
 			print ("=== SIMPLE_EIFFEL_PARSER DIAGNOSTIC ===%N%N")
 			create parser.make
 
+			-- Run lib_tests (EQA-style tests)
+			run_lib_tests
+			print ("%N")
+
 			-- First test minimal cases to isolate the issue
 			test_minimal_cases
 			print ("%N")
@@ -23,6 +27,42 @@ feature {NONE} -- Initialization
 			print ("Testing against EiffelBase ELKS library%N%N")
 			run_eiffelbase_diagnostics
 			print_summary
+		end
+
+feature -- Lib Tests
+
+	run_lib_tests
+			-- Run EQA-style lib tests
+		local
+			l_tests: LIB_TESTS
+		do
+			print ("=== LIB_TESTS ===%N%N")
+			create l_tests
+
+			run_single_test (agent l_tests.test_parser_make, "test_parser_make")
+			run_single_test (agent l_tests.test_parse_simple_class, "test_parse_simple_class")
+			run_single_test (agent l_tests.test_parse_class_with_feature, "test_parse_class_with_feature")
+			run_single_test (agent l_tests.test_lexer_tokens, "test_lexer_tokens")
+			run_single_test (agent l_tests.test_lexer_keywords, "test_lexer_keywords")
+			run_single_test (agent l_tests.test_class_node_name, "test_class_node_name")
+			run_single_test (agent l_tests.test_feature_node, "test_feature_node")
+			run_single_test (agent l_tests.test_has_errors, "test_has_errors")
+			run_single_test (agent l_tests.test_dbc_analyzer_make, "test_dbc_analyzer_make")
+			run_single_test (agent l_tests.test_multi_file_parsing_isolation, "test_multi_file_parsing_isolation")
+
+			-- SCOOP inline separate tests (GitHub Gobo 2024)
+			run_single_test (agent l_tests.test_scoop_inline_separate, "test_scoop_inline_separate")
+			run_single_test (agent l_tests.test_scoop_multiple_inline_separate, "test_scoop_multiple_inline_separate")
+		end
+
+	run_single_test (a_test: PROCEDURE; a_name: STRING)
+			-- Run a single test and report result
+		do
+			print ("  Running " + a_name + "... ")
+			a_test.call (Void)
+			print ("[PASS]%N")
+		rescue
+			print ("[FAIL]%N")
 		end
 
 feature -- Minimal Tests

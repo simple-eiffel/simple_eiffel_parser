@@ -381,6 +381,74 @@ end
 			assert ("one class", l_ast.classes.count = 1)
 		end
 
+
+	test_multi_file_parsing_isolation
+			-- Test that parsing multiple files in sequence returns correct class names.
+			-- This test catches the bug where Gobo's system accumulated classes and
+			-- find_parsed_class always returned the FIRST parsed class.
+			-- FIX: parse_file must call reset_system before each parse.
+		local
+			l_parser: SIMPLE_EIFFEL_PARSER
+			l_ast1, l_ast2, l_ast3: EIFFEL_AST
+			l_file1, l_file2, l_file3: PLAIN_TEXT_FILE
+			l_path1, l_path2, l_path3: STRING
+			l_exec: EXECUTION_ENVIRONMENT
+			l_temp: STRING
+		do
+			create l_exec
+			check attached l_exec.temporary_directory_path as l_tmp_path then
+				l_temp := l_tmp_path.name.out
+			end
+
+			-- Create 3 temporary files with different class names
+			l_path1 := l_temp + "/test_alpha.e"
+			l_path2 := l_temp + "/test_beta.e"
+			l_path3 := l_temp + "/test_gamma.e"
+
+			-- Write first file: class ALPHA
+			create l_file1.make_create_read_write (l_path1)
+			l_file1.put_string ("class ALPHA feature value: INTEGER end")
+			l_file1.close
+
+			-- Write second file: class BETA
+			create l_file2.make_create_read_write (l_path2)
+			l_file2.put_string ("class BETA feature name: STRING end")
+			l_file2.close
+
+			-- Write third file: class GAMMA
+			create l_file3.make_create_read_write (l_path3)
+			l_file3.put_string ("class GAMMA feature flag: BOOLEAN end")
+			l_file3.close
+
+			-- Parse all three files in sequence using the SAME parser instance
+			create l_parser.make
+			l_ast1 := l_parser.parse_file (l_path1)
+			l_ast2 := l_parser.parse_file (l_path2)
+			l_ast3 := l_parser.parse_file (l_path3)
+
+			-- CRITICAL: Each parse must return the correct class name, not the first one
+			print ("File 1 class: " + l_ast1.classes.first.name + " (expected ALPHA)%N")
+			print ("File 2 class: " + l_ast2.classes.first.name + " (expected BETA)%N")
+			print ("File 3 class: " + l_ast3.classes.first.name + " (expected GAMMA)%N")
+
+			-- These assertions WILL FAIL if reset_system is not called in parse_file
+			assert ("file1 parsed ok", not l_ast1.has_errors)
+			assert ("file1 is ALPHA", l_ast1.classes.first.name.is_equal ("ALPHA"))
+
+			assert ("file2 parsed ok", not l_ast2.has_errors)
+			assert ("file2 is BETA", l_ast2.classes.first.name.is_equal ("BETA"))
+
+			assert ("file3 parsed ok", not l_ast3.has_errors)
+			assert ("file3 is GAMMA", l_ast3.classes.first.name.is_equal ("GAMMA"))
+
+			-- Cleanup
+			create l_file1.make_with_name (l_path1)
+			if l_file1.exists then l_file1.delete end
+			create l_file2.make_with_name (l_path2)
+			if l_file2.exists then l_file2.delete end
+			create l_file3.make_with_name (l_path3)
+			if l_file3.exists then l_file3.delete end
+		end
 	test_eifgens_metadata_parser
 			-- Test EIFGENs metadata parsing
 		local

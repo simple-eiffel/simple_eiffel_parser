@@ -62,6 +62,10 @@ feature -- Access
 	last_error: detachable STRING
 			-- Last error message if parsing failed
 
+	last_filename_mismatch: detachable TUPLE [actual_path: STRING; derived_filename: STRING]
+			-- Set when filename did not match class name and fallback was used.
+			-- Caller can log this to KB or elsewhere. Void if no mismatch.
+
 feature -- Parsing
 
 	parse_file (a_path: STRING): BOOLEAN
@@ -73,6 +77,9 @@ feature -- Parsing
 			l_cluster: ET_CLUSTER
 			l_time_stamp: INTEGER
 			l_retried: BOOLEAN
+			l_source: STRING
+			l_derived_filename: STRING
+			l_stream: KL_STRING_INPUT_STREAM
 		do
 			if l_retried then
 				last_error := "Parser exception (possibly unsupported character constant)"
@@ -80,6 +87,10 @@ feature -- Parsing
 			else
 				last_error := Void
 				last_class := Void
+				last_filename_mismatch := Void
+
+				-- Reset system to avoid class accumulation between parses
+				reset_system
 
 				-- Create a temporary cluster for the file
 				create l_cluster.make ("temp_cluster", ".", system)
@@ -98,8 +109,36 @@ feature -- Parsing
 					if last_class /= Void then
 						Result := not parser.syntax_error
 					else
-						last_error := "No class found in file"
-						Result := False
+						-- FALLBACK: Filename may not match class name
+						l_file.open_read
+						if l_file.is_open_read then
+							l_source := read_file_content (l_file)
+							l_file.close
+							l_derived_filename := derive_filename_from_source (l_source)
+
+							-- Only retry if derived filename differs
+							if not a_path.has_substring (l_derived_filename) then
+								reset_system
+								create l_cluster.make ("temp_cluster", ".", system)
+								create l_stream.make (l_source)
+								parser.parse_file (l_stream, l_derived_filename, l_time_stamp, l_cluster)
+
+								last_class := find_parsed_class
+								if last_class /= Void then
+									last_filename_mismatch := [a_path, l_derived_filename]
+									Result := not parser.syntax_error
+								else
+									last_error := "No class found (tried both paths)"
+									Result := False
+								end
+							else
+								last_error := "No class found in file"
+								Result := False
+							end
+						else
+							last_error := "No class found in file"
+							Result := False
+						end
 					end
 				else
 					last_error := "Cannot open file: " + a_path
@@ -129,6 +168,7 @@ feature -- Parsing
 			else
 				last_error := Void
 				last_class := Void
+				last_filename_mismatch := Void
 
 				-- Reset system to avoid class accumulation between parses
 				reset_system
@@ -185,6 +225,26 @@ feature -- Parsing
 		end
 
 feature {NONE} -- Implementation
+
+	read_file_content (a_file: KL_TEXT_INPUT_FILE): STRING
+			-- Read entire file content into string
+		require
+			file_open: a_file.is_open_read
+		do
+			create Result.make (4096)
+			from
+			until
+				a_file.end_of_file
+			loop
+				a_file.read_line
+				if attached a_file.last_string as line then
+					Result.append (line)
+					Result.append_character ('%N')
+				end
+			end
+		ensure
+			result_not_void: Result /= Void
+		end
 
 	derive_filename_from_source (a_source: STRING): STRING
 			-- Extract class name from source and return "classname.e"
