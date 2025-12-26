@@ -24,3 +24,4 @@ Documentation/
 .DS_Store
 Thumbs.db
 
+exception_trace.log
