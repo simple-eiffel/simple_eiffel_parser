@@ -95,7 +95,7 @@ feature -- Parsing
 				-- Create a temporary cluster for the file
 				create l_cluster.make ("temp_cluster", ".", system)
 
-				-- Open and parse the file
+				-- Open and parse the file directly (Gobo handles most encodings)
 				create l_file.make (a_path)
 				l_file.open_read
 
@@ -109,30 +109,28 @@ feature -- Parsing
 					if last_class /= Void then
 						Result := not parser.syntax_error
 					else
-						-- FALLBACK: Filename may not match class name
+						-- FALLBACK: Read content, strip BOM if present, try again
 						l_file.open_read
 						if l_file.is_open_read then
 							l_source := read_file_content (l_file)
 							l_file.close
+							l_source := strip_bom (l_source)
 							l_derived_filename := derive_filename_from_source (l_source)
 
-							-- Only retry if derived filename differs
-							if not a_path.has_substring (l_derived_filename) then
-								reset_system
-								create l_cluster.make ("temp_cluster", ".", system)
-								create l_stream.make (l_source)
-								parser.parse_file (l_stream, l_derived_filename, l_time_stamp, l_cluster)
+							-- Retry with derived filename or after BOM stripping
+							reset_system
+							create l_cluster.make ("temp_cluster", ".", system)
+							create l_stream.make (l_source)
+							parser.parse_file (l_stream, l_derived_filename, l_time_stamp, l_cluster)
 
-								last_class := find_parsed_class
-								if last_class /= Void then
+							last_class := find_parsed_class
+							if last_class /= Void then
+								if not a_path.has_substring (l_derived_filename) then
 									last_filename_mismatch := [a_path, l_derived_filename]
-									Result := not parser.syntax_error
-								else
-									last_error := "No class found (tried both paths)"
-									Result := False
 								end
+								Result := not parser.syntax_error
 							else
-								last_error := "No class found in file"
+								last_error := "No class found (tried both paths)"
 								Result := False
 							end
 						else
@@ -241,6 +239,26 @@ feature {NONE} -- Implementation
 					Result.append (line)
 					Result.append_character ('%N')
 				end
+			end
+		ensure
+			result_not_void: Result /= Void
+		end
+
+	strip_bom (a_source: STRING): STRING
+			-- Remove UTF-8 BOM (Byte Order Mark) if present at start of string.
+			-- BOM is EF BB BF in UTF-8, which appears as character 65279 (0xFEFF) in UTF-8.
+		do
+			Result := a_source
+			-- UTF-8 BOM appears as three bytes: 0xEF 0xBB 0xBF
+			-- When read as ISO-8859-1 characters they appear as specific codes
+			if Result.count >= 3 then
+				if Result.item (1).code = 0xEF and Result.item (2).code = 0xBB and Result.item (3).code = 0xBF then
+					Result := Result.substring (4, Result.count)
+				end
+			end
+			-- Also check for single character BOM (when file is read as UTF-8)
+			if Result.count >= 1 and then Result.item (1).code = 0xFEFF then
+				Result := Result.substring (2, Result.count)
 			end
 		ensure
 			result_not_void: Result /= Void
