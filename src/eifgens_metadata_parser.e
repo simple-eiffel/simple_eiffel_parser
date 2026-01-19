@@ -158,9 +158,9 @@ feature -- Queries
 
 						l_parents := parent_indices (l_index)
 						if attached l_parents then
-							across l_parents as p loop
-								if p >= 0 and not l_visited.has (p) then
-									l_queue.extend (p)
+							across l_parents as ic_p loop
+								if ic_p >= 0 and not l_visited.has (ic_p) then
+									l_queue.extend (ic_p)
 								end
 							end
 						end
@@ -184,13 +184,13 @@ feature -- Queries
 			create l_seen.make (100)
 			l_chain := ancestor_chain (a_class_name)
 
-			across l_chain as c loop
-				if has_class (c) then
-					if attached features_for_class (class_index (c)) as l_feats then
-						across l_feats as f loop
-							if not l_seen.has (f) then
-								l_seen.force (True, f)
-								Result.extend (f)
+			across l_chain as ic_c loop
+				if has_class (ic_c) then
+					if attached features_for_class (class_index (ic_c)) as l_feats then
+						across l_feats as ic_f loop
+							if not l_seen.has (ic_f) then
+								l_seen.force (True, ic_f)
+								Result.extend (ic_f)
 							end
 						end
 					end
@@ -238,8 +238,8 @@ feature -- Loading
 				l_targets := l_file.directories
 
 				-- Find a target with W_code/E1
-				across l_targets as t until Result loop
-					l_target := t
+				across l_targets as ic_t until Result loop
+					l_target := ic_t
 					create l_file.make (a_project_path + "/EIFGENs/" + l_target.to_string_8 + "/W_code/E1")
 					if l_file.is_directory then
 						eifgens_path := a_project_path + "/EIFGENs/" + l_target.to_string_8 + "/W_code"
@@ -449,8 +449,8 @@ feature {NONE} -- Extraction helpers
 			if l_start > 0 and l_end > l_start then
 				l_content := a_line.substring (l_start + 1, l_end - 1)
 				l_parts := l_content.split (',')
-				across l_parts as p loop
-					l_part := p.twin
+				across l_parts as ic_p loop
+					l_part := ic_p.twin
 					l_part.left_adjust
 					l_part.right_adjust
 					if l_part.is_integer then

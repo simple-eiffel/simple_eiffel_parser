@@ -94,8 +94,8 @@ feature -- Convenience
 		do
 			l_ast := parse_string (a_source)
 			create Result.make (l_ast.classes.count)
-			across l_ast.classes as c loop
-				Result.extend (c.name)
+			across l_ast.classes as ic_c loop
+				Result.extend (ic_c.name)
 			end
 		ensure
 			result_not_void: Result /= Void
@@ -111,10 +111,10 @@ feature -- Convenience
 		do
 			l_ast := parse_string (a_source)
 			create Result.make (20)
-			across l_ast.classes as c loop
-				if c.name.is_case_insensitive_equal (a_class_name) then
-					across c.features as f loop
-						Result.extend (f.name)
+			across l_ast.classes as ic_c loop
+				if ic_c.name.is_case_insensitive_equal (a_class_name) then
+					across ic_c.features as ic_f loop
+						Result.extend (ic_f.name)
 					end
 				end
 			end

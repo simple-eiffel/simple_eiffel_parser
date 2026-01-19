@@ -41,8 +41,8 @@ feature {NONE} -- Initialization
 			-- Test ancestor chain
 			print ("%NAncestors of SIMPLE_JSON_VALUE:%N")
 			if l_meta.has_class ("SIMPLE_JSON_VALUE") then
-				across l_meta.ancestor_chain ("SIMPLE_JSON_VALUE") as a loop
-					print ("  " + a + "%N")
+				across l_meta.ancestor_chain ("SIMPLE_JSON_VALUE") as ic_a loop
+					print ("  " + ic_a + "%N")
 				end
 			else
 				print ("  (class not found)%N")
@@ -53,8 +53,8 @@ feature {NONE} -- Initialization
 			if l_meta.has_class ("STRING_TO_INTEGER_CONVERTOR") then
 				print ("STRING_TO_INTEGER_CONVERTOR attributes:%N")
 				if attached l_meta.features_for_class (l_meta.class_index ("STRING_TO_INTEGER_CONVERTOR")) as attrs then
-					across attrs as a loop
-						print ("  " + a + "%N")
+					across attrs as ic_a loop
+						print ("  " + ic_a + "%N")
 					end
 				end
 			end
@@ -66,8 +66,8 @@ feature {NONE} -- Initialization
 					if attrs.is_empty then
 						print ("  (no attributes in enames.c - class may only have routines)%N")
 					else
-						across attrs as a loop
-							print ("  " + a + "%N")
+						across attrs as ic_a loop
+							print ("  " + ic_a + "%N")
 						end
 					end
 				else

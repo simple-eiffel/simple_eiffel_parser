@@ -137,9 +137,9 @@ feature -- Query
 		require
 			name_not_empty: a_name /= Void and then not a_name.is_empty
 		do
-			across features as f loop
-				if f.name.is_case_insensitive_equal (a_name) then
-					Result := f
+			across features as ic_f loop
+				if ic_f.name.is_case_insensitive_equal (a_name) then
+					Result := ic_f
 				end
 			end
 		end

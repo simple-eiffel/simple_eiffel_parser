@@ -503,8 +503,8 @@ feature {NONE} -- Class Parsing
 					elseif match ({EIFFEL_TOKEN}.Symbol_colon) then
 						-- Type follows
 						l_type := parse_type
-						across l_names as n loop
-							a_feature.add_argument (create {EIFFEL_ARGUMENT_NODE}.make (n, l_type, l_pos))
+						across l_names as ic_n loop
+							a_feature.add_argument (create {EIFFEL_ARGUMENT_NODE}.make (ic_n, l_type, l_pos))
 							l_pos := l_pos + 1
 						end
 						l_names.wipe_out
@@ -544,8 +544,8 @@ feature {NONE} -- Class Parsing
 						-- More names
 					elseif match ({EIFFEL_TOKEN}.Symbol_colon) then
 						l_type := parse_type
-						across l_names as n loop
-							a_feature.add_local (create {EIFFEL_LOCAL_NODE}.make (n, l_type, l_line))
+						across l_names as ic_n loop
+							a_feature.add_local (create {EIFFEL_LOCAL_NODE}.make (ic_n, l_type, l_line))
 						end
 						l_names.wipe_out
 					end
