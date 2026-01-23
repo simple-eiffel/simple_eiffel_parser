@@ -42,6 +42,6 @@
 	</target>
 	<target name="lexer_test" extends="simple_eiffel_parser">
 		<root class="TEST_STRING_LEXER" feature="make"/>
-		<cluster name="test_root" location=".\"/>
+		<cluster name="tests" location=".\testing\"/>
 	</target>
 </system>

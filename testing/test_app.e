@@ -35,6 +35,7 @@ feature -- Lib Tests
 			-- Run EQA-style lib tests
 		local
 			l_tests: LIB_TESTS
+			l_suite: EIFFEL_PARSER_TEST_SUITE
 		do
 			print ("=== LIB_TESTS ===%N%N")
 			create l_tests
@@ -53,6 +54,16 @@ feature -- Lib Tests
 			-- SCOOP inline separate tests (GitHub Gobo 2024)
 			run_single_test (agent l_tests.test_scoop_inline_separate, "test_scoop_inline_separate")
 			run_single_test (agent l_tests.test_scoop_multiple_inline_separate, "test_scoop_multiple_inline_separate")
+
+			-- EIFFEL_PARSER_TEST_SUITE tests (previously only ran via AutoTest)
+			print ("%N=== EIFFEL_PARSER_TEST_SUITE ===%N%N")
+			create l_suite
+			run_single_test (agent l_suite.test_class_with_feature, "test_class_with_feature")
+			run_single_test (agent l_suite.test_inheritance, "test_inheritance")
+			run_single_test (agent l_suite.test_contracts, "test_contracts")
+			run_single_test (agent l_suite.test_once_function, "test_once_function")
+			run_single_test (agent l_suite.test_class_names_convenience, "test_class_names_convenience")
+			run_single_test (agent l_suite.test_eifgens_metadata_parser, "test_eifgens_metadata_parser")
 		end
 
 	run_single_test (a_test: PROCEDURE; a_name: STRING)
