@@ -10,23 +10,117 @@ create
 feature {NONE} -- Initialization
 
 	make
-			-- Run parser diagnostics
+			-- Run parser diagnostics, or corpus sweep when a directory argument is given
+		local
+			l_args: ARGUMENTS_32
 		do
-			print ("=== SIMPLE_EIFFEL_PARSER DIAGNOSTIC ===%N%N")
 			create parser.make
+			create error_categories.make (20)
+			create l_args
+			if l_args.argument_count >= 1 then
+				run_corpus_sweep (l_args.argument (1).to_string_8)
+			else
+				print ("=== SIMPLE_EIFFEL_PARSER DIAGNOSTIC ===%N%N")
 
-			-- Run lib_tests (EQA-style tests)
-			run_lib_tests
-			print ("%N")
+				-- Run lib_tests (EQA-style tests)
+				run_lib_tests
+				print ("%N")
 
-			-- First test minimal cases to isolate the issue
-			test_minimal_cases
-			print ("%N")
+				-- First test minimal cases to isolate the issue
+				test_minimal_cases
+				print ("%N")
 
-			-- Then run full EiffelBase diagnostics
-			print ("Testing against EiffelBase ELKS library%N%N")
-			run_eiffelbase_diagnostics
-			print_summary
+				-- Then run full EiffelBase diagnostics
+				print ("Testing against EiffelBase ELKS library%N%N")
+				run_eiffelbase_diagnostics
+				print_summary
+			end
+		end
+
+feature -- Corpus Sweep
+
+	run_corpus_sweep (a_dir: STRING)
+			-- Parse every .e file under `a_dir' with EIFFEL_PARSER (the LSP engine);
+			-- report files with parse errors.
+		local
+			l_files: ARRAYED_LIST [STRING]
+			l_parser: EIFFEL_PARSER
+			l_ast: EIFFEL_AST
+			l_err_files, l_total_errors, l_total_features, l_shown: INTEGER
+		do
+			create l_files.make (2000)
+			collect_eiffel_files (a_dir, l_files)
+			print ("=== CORPUS SWEEP (EIFFEL_PARSER) ===%N")
+			print ("Files: " + l_files.count.out + " under " + a_dir + "%N%N")
+			create l_parser.make
+			across l_files as ic_path loop
+				l_ast := l_parser.parse_string (file_content (ic_path))
+				across l_ast.classes as ic_c loop
+					l_total_features := l_total_features + ic_c.features.count
+				end
+				if l_ast.has_errors then
+					l_err_files := l_err_files + 1
+					l_total_errors := l_total_errors + l_ast.parse_errors.count
+					if l_shown < 50 then
+						l_shown := l_shown + 1
+						print ("[ERR] " + ic_path + "%N")
+						across l_ast.parse_errors as ic_e loop
+							print ("      line " + ic_e.line.out + ": " + ic_e.message + "%N")
+						end
+					end
+				end
+			end
+			print ("%N=== SWEEP SUMMARY ===%N")
+			print ("Files parsed:      " + l_files.count.out + "%N")
+			print ("Files with errors: " + l_err_files.out + "%N")
+			print ("Total errors:      " + l_total_errors.out + "%N")
+			print ("Total features:    " + l_total_features.out + "%N")
+		end
+
+	collect_eiffel_files (a_dir: STRING; a_list: ARRAYED_LIST [STRING])
+			-- Recursively collect .e files under `a_dir', skipping EIFGENs and .git
+		local
+			l_dir: DIRECTORY
+			l_name: STRING
+			l_path: STRING
+			l_sub: DIRECTORY
+		do
+			create l_dir.make (a_dir)
+			if l_dir.exists and then l_dir.is_readable then
+				across l_dir.entries as ic_entry loop
+					l_name := ic_entry.utf_8_name
+					if not l_name.same_string (".") and then
+						not l_name.same_string ("..") and then
+						not l_name.same_string ("EIFGENs") and then
+						not l_name.same_string (".git")
+					then
+						l_path := a_dir + "/" + l_name
+						create l_sub.make (l_path)
+						if l_sub.exists then
+							collect_eiffel_files (l_path, a_list)
+						elseif l_name.count > 2 and then l_name.as_lower.ends_with (".e") then
+							a_list.extend (l_path)
+						end
+					end
+				end
+			end
+		end
+
+	file_content (a_path: STRING): STRING
+			-- Content of file at `a_path' (empty if unreadable)
+		local
+			l_file: PLAIN_TEXT_FILE
+		do
+			create Result.make_empty
+			create l_file.make_with_name (a_path)
+			if l_file.exists and then l_file.is_readable then
+				l_file.open_read
+				if l_file.count > 0 then
+					l_file.read_stream (l_file.count)
+					Result := l_file.last_string.twin
+				end
+				l_file.close
+			end
 		end
 
 feature -- Lib Tests
@@ -48,6 +142,20 @@ feature -- Lib Tests
 			run_single_test (agent l_tests.test_class_node_name, "test_class_node_name")
 			run_single_test (agent l_tests.test_feature_node, "test_feature_node")
 			run_single_test (agent l_tests.test_has_errors, "test_has_errors")
+			run_single_test (agent l_tests.test_comma_separated_attributes, "test_comma_separated_attributes")
+			run_single_test (agent l_tests.test_comma_separated_routines, "test_comma_separated_routines")
+			run_single_test (agent l_tests.test_verbatim_string_in_note, "test_verbatim_string_in_note")
+			run_single_test (agent l_tests.test_bracket_manifest_strings, "test_bracket_manifest_strings")
+			run_single_test (agent l_tests.test_character_code_literal, "test_character_code_literal")
+			run_single_test (agent l_tests.test_inline_agent_in_precondition, "test_inline_agent_in_precondition")
+			run_single_test (agent l_tests.test_across_expression_in_postcondition, "test_across_expression_in_postcondition")
+			run_single_test (agent l_tests.test_across_from_loop_body, "test_across_from_loop_body")
+			run_single_test (agent l_tests.test_typed_once_string, "test_typed_once_string")
+			run_single_test (agent l_tests.test_multiline_header_comment, "test_multiline_header_comment")
+			run_single_test (agent l_tests.test_qualified_anchor_types, "test_qualified_anchor_types")
+			run_single_test (agent l_tests.test_inherit_without_adaptation, "test_inherit_without_adaptation")
+			run_single_test (agent l_tests.test_underscored_and_based_numbers, "test_underscored_and_based_numbers")
+			run_single_test (agent l_tests.test_comment_between_external_and_ensure, "test_comment_between_external_and_ensure")
 			run_single_test (agent l_tests.test_dbc_analyzer_make, "test_dbc_analyzer_make")
 			run_single_test (agent l_tests.test_multi_file_parsing_isolation, "test_multi_file_parsing_isolation")
 

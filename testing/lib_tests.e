@@ -24,6 +24,226 @@ feature -- Test: Parser Creation
 			assert_attached ("parser created", parser)
 		end
 
+feature -- Test: Regression (corpus-driven parser fixes)
+
+	test_comma_separated_attributes
+			-- Multiple feature names sharing one declaration: "count, capacity: INTEGER".
+		note
+			testing: "covers/{EIFFEL_PARSER}.parse_feature"
+		local
+			l_parser: EIFFEL_PARSER
+			l_ast: EIFFEL_AST
+		do
+			create l_parser.make
+			l_ast := l_parser.parse_string ("class C feature count, capacity: INTEGER end")
+			assert_false ("no errors", l_ast.has_errors)
+			assert_integers_equal ("two features", 2, l_ast.classes.first.features.count)
+			assert_strings_equal ("first name", "count", l_ast.classes.first.features [1].name)
+			assert_strings_equal ("second name", "capacity", l_ast.classes.first.features [2].name)
+		end
+
+	test_comma_separated_routines
+			-- Multiple routine names sharing one signature: "put, force (v: INTEGER)".
+		note
+			testing: "covers/{EIFFEL_PARSER}.parse_feature"
+		local
+			l_parser: EIFFEL_PARSER
+			l_ast: EIFFEL_AST
+		do
+			create l_parser.make
+			l_ast := l_parser.parse_string ("class C feature put, force (v: INTEGER) do end end")
+			assert_false ("no errors", l_ast.has_errors)
+			assert_integers_equal ("two features", 2, l_ast.classes.first.features.count)
+			assert_integers_equal ("second has argument", 1, l_ast.classes.first.features [2].arguments.count)
+		end
+
+	test_verbatim_string_in_note
+			-- Verbatim strings "[ ... ]" must lex as one token even when
+			-- the content contains keywords.
+		note
+			testing: "covers/{EIFFEL_LEXER}.scan_string"
+		local
+			l_parser: EIFFEL_PARSER
+			l_ast: EIFFEL_AST
+			l_source: STRING
+		do
+			create l_parser.make
+			l_source := "note%N%Tdescription: %"[%N%T%Tkeywords like end class do are fine here%N%T]%"%Nclass C%Nfeature%N%Tx: INTEGER%Nend"
+			l_ast := l_parser.parse_string (l_source)
+			assert_false ("no errors", l_ast.has_errors)
+			assert_integers_equal ("one class", 1, l_ast.classes.count)
+			assert_integers_equal ("one feature", 1, l_ast.classes.first.features.count)
+		end
+
+	test_bracket_manifest_strings
+			-- Strings like "[]" and "{}" are NOT verbatim openers.
+		note
+			testing: "covers/{EIFFEL_LEXER}.scan_string"
+		local
+			l_parser: EIFFEL_PARSER
+			l_ast: EIFFEL_AST
+		do
+			create l_parser.make
+			l_ast := l_parser.parse_string ("class C feature Empty_object: STRING = %"{}%" Empty_array: STRING = %"[]%" end")
+			assert_false ("no errors", l_ast.has_errors)
+			assert_integers_equal ("two features", 2, l_ast.classes.first.features.count)
+		end
+
+	test_character_code_literal
+			-- Character-code literals '%%/9/' must lex without desync.
+		note
+			testing: "covers/{EIFFEL_LEXER}.scan_character"
+		local
+			l_parser: EIFFEL_PARSER
+			l_ast: EIFFEL_AST
+		do
+			create l_parser.make
+			l_ast := l_parser.parse_string ("class C feature Tab: CHARACTER = '%%/9/' x: INTEGER end")
+			assert_false ("no errors", l_ast.has_errors)
+			assert_integers_equal ("two features", 2, l_ast.classes.first.features.count)
+		end
+
+	test_inline_agent_in_precondition
+			-- Inline agent bodies inside assertions must not end the assertion.
+		note
+			testing: "covers/{EIFFEL_PARSER}.parse_assertion_text"
+		local
+			l_parser: EIFFEL_PARSER
+			l_ast: EIFFEL_AST
+			l_source: STRING
+		do
+			create l_parser.make
+			l_source := "class C feature f (s: ARRAYED_LIST [INTEGER]) require ok: not s.there_exists (agent (v: INTEGER): BOOLEAN do Result := v > 0 end) do end g: INTEGER end"
+			l_ast := l_parser.parse_string (l_source)
+			assert_false ("no errors", l_ast.has_errors)
+			assert_integers_equal ("two features", 2, l_ast.classes.first.features.count)
+		end
+
+	test_across_expression_in_postcondition
+			-- across ... all ... end inside ensure must not desync.
+		note
+			testing: "covers/{EIFFEL_PARSER}.parse_assertion_text"
+		local
+			l_parser: EIFFEL_PARSER
+			l_ast: EIFFEL_AST
+			l_source: STRING
+		do
+			create l_parser.make
+			l_source := "class C feature f do ensure all_ok: across items as i all i > 0 end end g: INTEGER end"
+			l_ast := l_parser.parse_string (l_source)
+			assert_false ("no errors", l_ast.has_errors)
+			assert_integers_equal ("two features", 2, l_ast.classes.first.features.count)
+		end
+
+	test_across_from_loop_body
+			-- across ... from ... loop ... end has ONE 'end' for both keywords.
+		note
+			testing: "covers/{EIFFEL_PARSER}.skip_compound"
+		local
+			l_parser: EIFFEL_PARSER
+			l_ast: EIFFEL_AST
+			l_source: STRING
+		do
+			create l_parser.make
+			l_source := "class C feature f local y: INTEGER do across x as i from y := 1 loop y := y + 1 end end g: INTEGER end"
+			l_ast := l_parser.parse_string (l_source)
+			assert_false ("no errors", l_ast.has_errors)
+			assert_integers_equal ("two features", 2, l_ast.classes.first.features.count)
+		end
+
+	test_typed_once_string
+			-- 'once {STRING_32} "..."' is an expression, not a once body.
+		note
+			testing: "covers/{EIFFEL_PARSER}.skip_compound"
+		local
+			l_parser: EIFFEL_PARSER
+			l_ast: EIFFEL_AST
+			l_source: STRING
+		do
+			create l_parser.make
+			l_source := "class C feature f: STRING_32 do Result := once {STRING_32} %"abc%" end g: INTEGER end"
+			l_ast := l_parser.parse_string (l_source)
+			assert_false ("no errors", l_ast.has_errors)
+			assert_integers_equal ("two features", 2, l_ast.classes.first.features.count)
+		end
+
+	test_multiline_header_comment
+			-- Multi-line header comments must not break feature parsing.
+		note
+			testing: "covers/{EIFFEL_PARSER}.parse_feature"
+		local
+			l_parser: EIFFEL_PARSER
+			l_ast: EIFFEL_AST
+			l_source: STRING
+		do
+			create l_parser.make
+			l_source := "class C feature f%N%T%T-- line one%N%T%T-- line two%N%Tdo end g: INTEGER end"
+			l_ast := l_parser.parse_string (l_source)
+			assert_false ("no errors", l_ast.has_errors)
+			assert_integers_equal ("two features", 2, l_ast.classes.first.features.count)
+		end
+
+	test_qualified_anchor_types
+			-- like {SPECIAL [G]}.lower and like area.lower anchors.
+		note
+			testing: "covers/{EIFFEL_PARSER}.parse_type"
+		local
+			l_parser: EIFFEL_PARSER
+			l_ast: EIFFEL_AST
+			l_source: STRING
+		do
+			create l_parser.make
+			l_source := "class C feature a: like {SPECIAL [INTEGER]}.lower b: like a.lower end"
+			l_ast := l_parser.parse_string (l_source)
+			assert_false ("no errors", l_ast.has_errors)
+			assert_integers_equal ("two features", 2, l_ast.classes.first.features.count)
+		end
+
+	test_inherit_without_adaptation
+			-- "class C inherit ANY end": the 'end' belongs to the class,
+			-- not to a (missing) adaptation clause.
+		note
+			testing: "covers/{EIFFEL_PARSER}.parse_adaptation_clauses"
+		local
+			l_parser: EIFFEL_PARSER
+			l_ast: EIFFEL_AST
+		do
+			create l_parser.make
+			l_ast := l_parser.parse_string ("class C inherit ANY end")
+			assert_false ("no errors", l_ast.has_errors)
+			assert_integers_equal ("one parent", 1, l_ast.classes.first.parents.count)
+		end
+
+	test_underscored_and_based_numbers
+			-- 1_000_000 and 0xFF literals.
+		note
+			testing: "covers/{EIFFEL_LEXER}.scan_number"
+		local
+			l_parser: EIFFEL_PARSER
+			l_ast: EIFFEL_AST
+		do
+			create l_parser.make
+			l_ast := l_parser.parse_string ("class C feature Max: INTEGER = 1_000_000 Mask: INTEGER = 0xFF end")
+			assert_false ("no errors", l_ast.has_errors)
+			assert_integers_equal ("two features", 2, l_ast.classes.first.features.count)
+		end
+
+	test_comment_between_external_and_ensure
+			-- Comments between clauses (wel_api pattern) must be transparent.
+		note
+			testing: "covers/{EIFFEL_PARSER}.skip_comments"
+		local
+			l_parser: EIFFEL_PARSER
+			l_ast: EIFFEL_AST
+			l_source: STRING
+		do
+			create l_parser.make
+			l_source := "class C feature f external%N%T%T%"C inline%"%N%Talias%N%T%T%"foo();%"%N%T%T-- old: bar();%N%Tensure%N%T%Tok: True%N%Tend%Nend"
+			l_ast := l_parser.parse_string (l_source)
+			assert_false ("no errors", l_ast.has_errors)
+			assert_integers_equal ("one feature", 1, l_ast.classes.first.features.count)
+		end
+
 feature -- Test: Parse Class
 
 	test_parse_simple_class

@@ -21,6 +21,7 @@ feature {NONE} -- Initialization
 			-- Initialize parser with Gobo backend
 		do
 			create gobo_bridge.make
+			create fallback_parser.make
 			create internal_last_ast.make
 		end
 
@@ -47,11 +48,9 @@ feature -- Parsing
 					internal_last_ast.add_class (gobo_bridge.to_simple_class (lc))
 				end
 			else
-				if attached gobo_bridge.last_error as err then
-					internal_last_ast.add_error (create {EIFFEL_PARSE_ERROR}.make (err, 1, 1))
-				else
-					internal_last_ast.add_error (create {EIFFEL_PARSE_ERROR}.make ("Parse error", 1, 1))
-				end
+				-- Gobo could not parse (e.g. C3 character constants):
+				-- fall back to the lightweight structural parser
+				internal_last_ast := fallback_parser.parse_string (a_source)
 			end
 
 			Result := internal_last_ast
@@ -71,11 +70,9 @@ feature -- Parsing
 					internal_last_ast.add_class (gobo_bridge.to_simple_class (lc))
 				end
 			else
-				if attached gobo_bridge.last_error as err then
-					internal_last_ast.add_error (create {EIFFEL_PARSE_ERROR}.make (err, 1, 1))
-				else
-					internal_last_ast.add_error (create {EIFFEL_PARSE_ERROR}.make ("Cannot parse file: " + a_path, 1, 1))
-				end
+				-- Gobo could not parse (e.g. C3 character constants):
+				-- fall back to the lightweight structural parser
+				internal_last_ast := fallback_parser.parse_file (a_path)
 			end
 
 			Result := internal_last_ast
@@ -135,11 +132,15 @@ feature {NONE} -- Implementation
 	gobo_bridge: GOBO_PARSER_BRIDGE
 			-- Gobo parser bridge
 
+	fallback_parser: EIFFEL_PARSER
+			-- Lightweight structural parser used when Gobo cannot parse
+
 	internal_last_ast: EIFFEL_AST
 			-- Internal AST storage
 
 invariant
 	gobo_bridge_exists: gobo_bridge /= Void
+	fallback_parser_exists: fallback_parser /= Void
 	internal_ast_exists: internal_last_ast /= Void
 
 end

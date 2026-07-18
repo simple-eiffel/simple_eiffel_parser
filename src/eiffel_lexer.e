@@ -125,7 +125,7 @@ feature {NONE} -- Scanning
 		end
 
 	scan_string: EIFFEL_TOKEN
-			-- Scan a string literal
+			-- Scan a string literal (regular or verbatim "[ ... ]" / "{ ... }")
 		local
 			start_col: INTEGER
 			start_pos: INTEGER
@@ -134,21 +134,119 @@ feature {NONE} -- Scanning
 			start_col := column
 			start_pos := position
 			advance -- skip opening quote
+			if position <= source.count and then (source [position] = '[' or source [position] = '{') and then opener_at_line_end then
+				Result := scan_verbatim_string (start_pos, start_col)
+			else
+				from
+				until
+					position > source.count or else (source[position] = '"' and then not is_escaped_quote)
+				loop
+					if source[position] = '%N' then
+						line := line + 1
+						column := 0
+					end
+					advance
+				end
+				if position <= source.count then
+					advance -- skip closing quote
+				end
+				text := source.substring (start_pos, position - 1)
+				create Result.make ({EIFFEL_TOKEN}.Token_string, text, line, start_col)
+			end
+		ensure
+			result_not_void: Result /= Void
+		end
+
+	scan_verbatim_string (a_start_pos, a_start_col: INTEGER): EIFFEL_TOKEN
+			-- Scan a verbatim string "[ ... ]" or "{ ... }".
+			-- `position' is on the opening bracket (just after the quote).
+			-- The closing bracket-quote must be first non-blank on its line.
+		require
+			on_opener: position <= source.count and then (source [position] = '[' or source [position] = '{')
+		local
+			l_closer: CHARACTER
+			l_start_line: INTEGER
+			l_done: BOOLEAN
+			text: STRING
+		do
+			l_start_line := line
+			if source [position] = '[' then
+				l_closer := ']'
+			else
+				l_closer := '}'
+			end
+			advance -- skip opening bracket
 			from
 			until
-				position > source.count or else (source[position] = '"' and then not is_escaped_quote)
+				l_done or else position > source.count
 			loop
-				if source[position] = '%N' then
-					line := line + 1
-					column := 0
+				if source [position] = l_closer and then
+					position + 1 <= source.count and then
+					source [position + 1] = '"' and then
+					closer_at_line_start
+				then
+					advance -- skip closing bracket
+					advance -- skip closing quote
+					l_done := True
+				else
+					if source [position] = '%N' then
+						line := line + 1
+						column := 0
+					end
+					advance
 				end
-				advance
 			end
-			if position <= source.count then
-				advance -- skip closing quote
+			text := source.substring (a_start_pos, position - 1)
+			create Result.make ({EIFFEL_TOKEN}.Token_string, text, l_start_line, a_start_col)
+		ensure
+			result_not_void: Result /= Void
+		end
+
+	opener_at_line_end: BOOLEAN
+			-- Is the rest of the line after the opening bracket blank?
+			-- (Distinguishes verbatim "[ from manifest strings like "[]")
+		local
+			i: INTEGER
+			l_done: BOOLEAN
+		do
+			Result := True
+			from
+				i := position + 1
+			until
+				l_done or else i > source.count
+			loop
+				if source [i] = '%N' or source [i] = '%R' then
+					l_done := True
+				elseif source [i] = ' ' or source [i] = '%T' then
+					i := i + 1
+				else
+					Result := False
+					l_done := True
+				end
 			end
-			text := source.substring (start_pos, position - 1)
-			create Result.make ({EIFFEL_TOKEN}.Token_string, text, line, start_col)
+		end
+
+	closer_at_line_start: BOOLEAN
+			-- Are all characters between the last newline and `position' blanks?
+		local
+			i: INTEGER
+			l_done: BOOLEAN
+		do
+			Result := True
+			from
+				i := position - 1
+			until
+				l_done or else i < 1
+			loop
+				if source [i] = '%N' then
+					l_done := True
+				elseif source [i] = ' ' or source [i] = '%T' then
+					i := i - 1
+				else
+					Result := False
+					l_done := True
+				end
+			end
 		end
 
 	is_escaped_quote: BOOLEAN
@@ -186,7 +284,18 @@ feature {NONE} -- Scanning
 			advance -- skip opening quote
 			if position <= source.count and then source[position] = '%%' then
 				advance -- skip escape char
-				if position <= source.count then
+				if position <= source.count and then source [position] = '/' then
+					advance -- skip opening slash of character code form %/123/
+					from
+					until
+						position > source.count or else source [position] = '/'
+					loop
+						advance
+					end
+					if position <= source.count then
+						advance -- skip closing slash
+					end
+				elseif position <= source.count then
 					advance -- skip escaped char
 				end
 			elseif position <= source.count then
@@ -237,35 +346,54 @@ feature {NONE} -- Scanning
 		do
 			start_col := column
 			start_pos := position
-			from
-			until
-				position > source.count or else not source[position].is_digit
-			loop
-				advance
-			end
-			-- Check for decimal point
-			if position <= source.count and then source[position] = '.' and then position + 1 <= source.count and then source[position + 1].is_digit then
-				is_real := True
-				advance -- skip dot
+			if source [position] = '0' and then position + 1 <= source.count and then
+				(source [position + 1] = 'x' or source [position + 1] = 'X' or
+				 source [position + 1] = 'c' or source [position + 1] = 'C' or
+				 source [position + 1] = 'b' or source [position + 1] = 'B')
+			then
+				-- Based literal: 0x1F, 0c777, 0b1010 (underscores allowed)
+				advance -- skip 0
+				advance -- skip base marker
 				from
 				until
-					position > source.count or else not source[position].is_digit
+					position > source.count or else
+					not (source [position].is_alpha or source [position].is_digit or source [position] = '_')
 				loop
 					advance
 				end
-			end
-			-- Check for exponent
-			if position <= source.count and then (source[position] = 'e' or source[position] = 'E') then
-				is_real := True
-				advance
-				if position <= source.count and then (source[position] = '+' or source[position] = '-') then
-					advance
-				end
+			else
 				from
 				until
-					position > source.count or else not source[position].is_digit
+					position > source.count or else
+					not (source [position].is_digit or source [position] = '_')
 				loop
 					advance
+				end
+				-- Check for decimal point
+				if position <= source.count and then source[position] = '.' and then position + 1 <= source.count and then source[position + 1].is_digit then
+					is_real := True
+					advance -- skip dot
+					from
+					until
+						position > source.count or else
+						not (source [position].is_digit or source [position] = '_')
+					loop
+						advance
+					end
+				end
+				-- Check for exponent
+				if position <= source.count and then (source[position] = 'e' or source[position] = 'E') then
+					is_real := True
+					advance
+					if position <= source.count and then (source[position] = '+' or source[position] = '-') then
+						advance
+					end
+					from
+					until
+						position > source.count or else not source[position].is_digit
+					loop
+						advance
+					end
 				end
 			end
 			text := source.substring (start_pos, position - 1)

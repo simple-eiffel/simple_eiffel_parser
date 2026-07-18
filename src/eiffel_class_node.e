@@ -26,6 +26,7 @@ feature {NONE} -- Initialization
 			create parents.make (5)
 			create creators.make (5)
 			header_comment := ""
+			invariant_clauses := 0
 		ensure
 			name_set: name = a_name
 			line_set: line = a_line
@@ -54,6 +55,10 @@ feature -- Access
 
 	header_comment: STRING
 			-- Header comment (from note clause or first comment)
+
+	invariant_clauses: INTEGER
+			-- Number of individual class-invariant assertion clauses
+			-- (structural, from the full AST).
 
 	features: ARRAYED_LIST [EIFFEL_FEATURE_NODE]
 			-- Features declared in this class
@@ -98,6 +103,16 @@ feature -- Modification
 			header_comment := a_comment
 		ensure
 			comment_set: header_comment = a_comment
+		end
+
+	set_invariant_clauses (a_count: INTEGER)
+			-- Set the structural class-invariant clause count.
+		require
+			count_non_negative: a_count >= 0
+		do
+			invariant_clauses := a_count
+		ensure
+			set: invariant_clauses = a_count
 		end
 
 	add_feature (a_feature: EIFFEL_FEATURE_NODE)

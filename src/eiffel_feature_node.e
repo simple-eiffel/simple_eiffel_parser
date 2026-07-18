@@ -29,6 +29,8 @@ feature {NONE} -- Initialization
 			header_comment := ""
 			precondition := ""
 			postcondition := ""
+			precondition_clauses := 0
+			postcondition_clauses := 0
 		ensure
 			name_set: name = a_name
 			line_set: line = a_line
@@ -63,6 +65,13 @@ feature -- Access
 
 	postcondition: STRING
 			-- Ensure clause text
+
+	precondition_clauses: INTEGER
+			-- Number of individual require assertion clauses (structural,
+			-- from the full AST -- distinct from a keyword-line count).
+
+	postcondition_clauses: INTEGER
+			-- Number of individual ensure assertion clauses (structural).
 
 	header_comment: STRING
 			-- Feature header comment
@@ -133,6 +142,26 @@ feature -- Modification
 			header_comment := a_comment
 		ensure
 			comment_set: header_comment = a_comment
+		end
+
+	set_precondition_clauses (a_count: INTEGER)
+			-- Set the structural require clause count.
+		require
+			count_non_negative: a_count >= 0
+		do
+			precondition_clauses := a_count
+		ensure
+			set: precondition_clauses = a_count
+		end
+
+	set_postcondition_clauses (a_count: INTEGER)
+			-- Set the structural ensure clause count.
+		require
+			count_non_negative: a_count >= 0
+		do
+			postcondition_clauses := a_count
+		ensure
+			set: postcondition_clauses = a_count
 		end
 
 	set_deferred (a_value: BOOLEAN)

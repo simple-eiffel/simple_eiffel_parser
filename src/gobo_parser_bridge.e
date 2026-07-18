@@ -77,6 +77,7 @@ feature -- Parsing
 			l_cluster: ET_CLUSTER
 			l_time_stamp: INTEGER
 			l_retried: BOOLEAN
+			l_plain: BOOLEAN
 			l_source: STRING
 			l_derived_filename: STRING
 			l_stream: KL_STRING_INPUT_STREAM
@@ -89,8 +90,10 @@ feature -- Parsing
 				last_class := Void
 				last_filename_mismatch := Void
 
-				-- Reset system to avoid class accumulation between parses
-				reset_system
+				-- Reset system to avoid class accumulation between parses.
+				-- On retry after an exception, use the plain AST factory which
+				-- handles C3 character constants ('%/code/').
+				reset_system_with_factory (l_plain)
 
 				-- Create a temporary cluster for the file
 				create l_cluster.make ("temp_cluster", ".", system)
@@ -118,7 +121,7 @@ feature -- Parsing
 							l_derived_filename := derive_filename_from_source (l_source)
 
 							-- Retry with derived filename or after BOM stripping
-							reset_system
+							reset_system_with_factory (l_plain)
 							create l_cluster.make ("temp_cluster", ".", system)
 							create l_stream.make (l_source)
 							parser.parse_file (l_stream, l_derived_filename, l_time_stamp, l_cluster)
@@ -144,8 +147,13 @@ feature -- Parsing
 				end
 			end
 		rescue
-			l_retried := True
-			retry
+			if not l_plain then
+				l_plain := True
+				retry
+			else
+				l_retried := True
+				retry
+			end
 		end
 
 	parse_string (a_source: STRING; a_filename: STRING): BOOLEAN
@@ -158,6 +166,7 @@ feature -- Parsing
 			l_stream: KL_STRING_INPUT_STREAM
 			l_cluster: ET_CLUSTER
 			l_retried: BOOLEAN
+			l_plain: BOOLEAN
 			l_actual_filename: STRING
 		do
 			if l_retried then
@@ -168,8 +177,9 @@ feature -- Parsing
 				last_class := Void
 				last_filename_mismatch := Void
 
-				-- Reset system to avoid class accumulation between parses
-				reset_system
+				-- Reset system to avoid class accumulation between parses.
+				-- On retry after an exception, use the plain AST factory.
+				reset_system_with_factory (l_plain)
 
 				-- Extract class name from source and use as filename (Gobo shallow mode requirement)
 				l_actual_filename := derive_filename_from_source (a_source)
@@ -192,8 +202,13 @@ feature -- Parsing
 				end
 			end
 		rescue
-			l_retried := True
-			retry
+			if not l_plain then
+				l_plain := True
+				retry
+			else
+				l_retried := True
+				retry
+			end
 		end
 
 	find_parsed_class: detachable ET_CLASS
@@ -297,8 +312,17 @@ feature {NONE} -- Implementation
 
 	reset_system
 			-- Create fresh system to avoid class accumulation between parses
+		do
+			reset_system_with_factory (False)
+		end
+
+	reset_system_with_factory (a_plain: BOOLEAN)
+			-- Create fresh system. With `a_plain', use the plain AST factory,
+			-- which handles C3 character constants ('%/code/') that trigger
+			-- precondition failures in ET_DECORATED_AST_FACTORY.
 		local
 			l_ast_factory: ET_DECORATED_AST_FACTORY
+			l_plain_factory: ET_AST_FACTORY
 		do
 			create system.make ("simple_parser_system")
 			create system_processor.make
@@ -306,10 +330,19 @@ feature {NONE} -- Implementation
 			system_processor.set_nested_benchmark_shown (False)
 			system_processor.set_preparse_shallow_mode
 
-			-- Use decorated AST factory to preserve whitespace/comments
-			create l_ast_factory.make
-			l_ast_factory.set_keep_all_breaks (True)
-			system_processor.set_ast_factory (l_ast_factory)
+			if a_plain then
+				create l_plain_factory.make
+				system_processor.set_ast_factory (l_plain_factory)
+			else
+				-- Use decorated AST factory to preserve whitespace/comments.
+				-- keep_all_comments retains comments in the AST (the mechanism
+				-- Gobo's own gedoc uses for pretty-printing) so header comments
+				-- are available structurally rather than by raw-source scan.
+				create l_ast_factory.make
+				l_ast_factory.set_keep_all_breaks (True)
+				l_ast_factory.set_keep_all_comments (True)
+				system_processor.set_ast_factory (l_ast_factory)
+			end
 
 			-- Create our subclass of the parser that exposes last_class
 			create parser.make (system_processor)
@@ -359,6 +392,34 @@ feature -- Conversion
 			if attached a_class.parent_clauses as pcl then
 				extract_parents (a_class, Result)
 			end
+
+			-- Structural class-invariant clause count from the full AST.
+			if attached a_class.invariants as l_inv then
+				Result.set_invariant_clauses (l_inv.count)
+			end
+		end
+
+	extract_contracts (a_feature: ET_FEATURE; a_node: EIFFEL_FEATURE_NODE)
+			-- Fill `a_node' with structural require/ensure clause counts read
+			-- from the full AST (each assertion item is one clause), rather than
+			-- from a raw-source keyword scan. Attributes carry no contracts, so
+			-- the detachable checks simply leave the counts at 0.
+		require
+			feature_valid: a_feature /= Void
+			node_valid: a_node /= Void
+		do
+			if attached a_feature.preconditions as l_pre then
+				a_node.set_precondition_clauses (l_pre.count)
+				if l_pre.count > 0 and then a_node.precondition.is_empty then
+					a_node.set_precondition ("require")
+				end
+			end
+			if attached a_feature.postconditions as l_post then
+				a_node.set_postcondition_clauses (l_post.count)
+				if l_post.count > 0 and then a_node.postcondition.is_empty then
+					a_node.set_postcondition ("ensure")
+				end
+			end
 		end
 
 feature {NONE} -- Conversion helpers
@@ -391,6 +452,8 @@ feature {NONE} -- Conversion helpers
 			if a_query.is_deferred then
 				Result.set_deferred (True)
 			end
+
+			extract_contracts (a_query, Result)
 		end
 
 	procedure_to_feature (a_procedure: ET_PROCEDURE): EIFFEL_FEATURE_NODE
@@ -408,6 +471,8 @@ feature {NONE} -- Conversion helpers
 			if a_procedure.is_deferred then
 				Result.set_deferred (True)
 			end
+
+			extract_contracts (a_procedure, Result)
 		end
 
 	extract_arguments (a_routine: ET_ROUTINE; a_feature: EIFFEL_FEATURE_NODE)
