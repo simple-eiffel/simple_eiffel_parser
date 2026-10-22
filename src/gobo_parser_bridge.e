@@ -110,7 +110,7 @@ feature -- Parsing
 					-- After parsing, find the parsed class in the system
 					last_class := find_parsed_class
 					if last_class /= Void then
-						Result := not parser.syntax_error
+						Result := attached last_class as l_found and then not l_found.has_syntax_error
 					else
 						-- FALLBACK: Read content, strip BOM if present, try again
 						l_file.open_read
@@ -131,7 +131,7 @@ feature -- Parsing
 								if not a_path.has_substring (l_derived_filename) then
 									last_filename_mismatch := [a_path, l_derived_filename]
 								end
-								Result := not parser.syntax_error
+								Result := attached last_class as l_found and then not l_found.has_syntax_error
 							else
 								last_error := "No class found (tried both paths)"
 								Result := False
@@ -195,7 +195,7 @@ feature -- Parsing
 				-- After parsing, find the parsed class in the system
 				last_class := find_parsed_class
 				if last_class /= Void then
-					Result := not parser.syntax_error
+					Result := attached last_class as l_found and then not l_found.has_syntax_error
 				else
 					last_error := "No class found in source"
 					Result := False
