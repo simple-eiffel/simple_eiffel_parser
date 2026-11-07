@@ -1,6 +1,6 @@
 {
   "name": "simple_eiffel_parser",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Eiffel source code parser for LSP symbol extraction",
   "author": "Larry Rix",
   "license": "MIT",
