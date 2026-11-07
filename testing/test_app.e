@@ -328,7 +328,7 @@ feature -- Diagnostics
 			l_base_path: STRING
 		do
 			create error_categories.make (20)
-			l_base_path := "C:/Program Files/Eiffel Software/EiffelStudio 25.02 Standard/library/base/elks/kernel/"
+			l_base_path := ise_library + "/library/base/elks/kernel/"
 
 			-- Core foundation classes
 			print ("=== Core Kernel Classes ===%N")
@@ -343,7 +343,7 @@ feature -- Diagnostics
 
 			-- String classes
 			print ("%N=== String Classes ===%N")
-			l_base_path := "C:/Program Files/Eiffel Software/EiffelStudio 25.02 Standard/library/base/elks/kernel/string/"
+			l_base_path := ise_library + "/library/base/elks/kernel/string/"
 			parse_file (l_base_path + "string_8.e", "STRING_8")
 			parse_file (l_base_path + "readable_string_8.e", "READABLE_STRING_8")
 			parse_file (l_base_path + "immutable_string_8.e", "IMMUTABLE_STRING_8")
@@ -351,24 +351,34 @@ feature -- Diagnostics
 
 			-- Structure classes
 			print ("%N=== Structure Classes ===%N")
-			l_base_path := "C:/Program Files/Eiffel Software/EiffelStudio 25.02 Standard/library/base/elks/structures/list/"
+			l_base_path := ise_library + "/library/base/elks/structures/list/"
 			parse_file (l_base_path + "arrayed_list.e", "ARRAYED_LIST")
 			parse_file (l_base_path + "linked_list.e", "LINKED_LIST")
 
-			l_base_path := "C:/Program Files/Eiffel Software/EiffelStudio 25.02 Standard/library/base/elks/structures/table/"
+			l_base_path := ise_library + "/library/base/elks/structures/table/"
 			parse_file (l_base_path + "hash_table.e", "HASH_TABLE")
 
 			-- Exception classes
 			print ("%N=== Exception Classes ===%N")
-			l_base_path := "C:/Program Files/Eiffel Software/EiffelStudio 25.02 Standard/library/base/elks/kernel/exceptions/"
+			l_base_path := ise_library + "/library/base/elks/kernel/exceptions/"
 			parse_file (l_base_path + "exception.e", "EXCEPTION")
 			parse_file (l_base_path + "exception_manager.e", "EXCEPTION_MANAGER")
 
 			-- File/IO classes
 			print ("%N=== IO Classes ===%N")
-			l_base_path := "C:/Program Files/Eiffel Software/EiffelStudio 25.02 Standard/library/base/elks/kernel/"
+			l_base_path := ise_library + "/library/base/elks/kernel/"
 			parse_file (l_base_path + "file.e", "FILE")
 			parse_file (l_base_path + "directory.e", "DIRECTORY")
+		end
+
+	ise_library: STRING
+			-- Where EiffelStudio's libraries are, from ISE_LIBRARY.
+		do
+			if attached (create {EXECUTION_ENVIRONMENT}).item ("ISE_LIBRARY") as l_path then
+				Result := l_path.to_string_8
+			else
+				Result := "C:/Program Files/Eiffel Software/EiffelStudio 25.02 Standard"
+			end
 		end
 
 	parse_file (a_path: STRING; a_class_name: STRING)
